@@ -14,11 +14,21 @@ const MangaSchema = mongoose.Schema(
             type: String,
             required: [true, "Manga description required"],
         },
-        uploadedChs: {
-            type: Number,
+        chapters: {
+            type: [ Number ],
             required: true,
-            default: 0,
+            default: [],
         },
+        status: {
+            type: String, 
+            enum:['Completed', 'Ongoing'],
+            required: true,
+        },
+        genres: {
+            type: [ String ],
+            required: true,
+            default: [],
+        }
     },
     {
         timestamps: true,

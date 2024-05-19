@@ -17,12 +17,24 @@ app.use(express.json())
 app.put('/api/manga/:id', async (req, res) => {
     try{
         const { id } = req.params;
-        const manga = await MangaEntry.findByIdAndUpdate(id, req.body);
+
+
+        // find the manga
+        var manga = await MangaEntry.findById(id);
 
         if (!manga){
             return res.status(404).json({message: "Manga not found. Double-check the ID."});
         }
 
+        // add the new chapters to the already uploaded chapters, then sort
+        let chapters = req.body.chapters.concat(manga.chapters);
+        chapters.sort(function(a, b){return a - b});
+        req.body.chapters = chapters
+
+        // update the manga entry on the DB
+        var manga = await MangaEntry.findByIdAndUpdate(id, req.body, { runValidators: true });
+
+        // return the updated entry
         const updatedManga = await MangaEntry.findById(id);
         res.status(200).json({updatedManga});
 
@@ -55,7 +67,7 @@ app.get('/api/manga', async (req, res) => {
     }
 })
 
-app.post('/api/new', async (req, res) => {
+app.post('/api/manga/new', async (req, res) => {
     try {
         const mangaEntry = await MangaEntry.create(req.body);
         cloudinary.api.create_folder(`/${mangaEntry._id.toString()}`)
