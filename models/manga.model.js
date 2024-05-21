@@ -28,6 +28,10 @@ const MangaSchema = mongoose.Schema(
             type: [ String ],
             required: true,
             default: [],
+        },
+        newChapter: {
+            type: Number,
+            required: false,
         }
     },
     {
