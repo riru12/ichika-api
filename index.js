@@ -18,7 +18,6 @@ app.put('/api/manga/:id', async (req, res) => {
     try{
         const { id } = req.params;
 
-
         // find the manga
         var manga = await MangaEntry.findById(id);
 
@@ -27,9 +26,24 @@ app.put('/api/manga/:id', async (req, res) => {
         }
 
         // add the new chapters to the already uploaded chapters, then sort
-        let chapters = req.body.chapters.concat(manga.chapters);
-        chapters.sort(function(a, b){return a - b});
-        req.body.chapters = chapters
+        let newChapters = req.body.chapters;
+        for(let i = 0; i < newChapters.length; i++){
+            cloudinary.api.create_folder(`/${id}/${newChapters[i]}`)
+        }
+
+
+        // testing upload of images
+        for(let i = 0; i < 7; i++){
+            cloudinary.uploader.upload(`./chapter-images/${i+1}.jpg`, 
+                { 
+                    folder: `/${id}/1`,
+                    use_filename: true,
+                    unique_filename: false,
+                })
+        }
+
+        let allChapters = newChapters.concat(manga.chapters);
+        req.body.chapters = allChapters.sort(function(a, b){return a - b});
 
         // update the manga entry on the DB
         var manga = await MangaEntry.findByIdAndUpdate(id, req.body, { runValidators: true });
