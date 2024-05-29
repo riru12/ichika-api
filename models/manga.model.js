@@ -32,6 +32,9 @@ const MangaSchema = mongoose.Schema(
         newChapter: {
             type: Number,
             required: false,
+        },
+        coverImg: {
+            type: String
         }
     },
     {

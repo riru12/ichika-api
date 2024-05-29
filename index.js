@@ -1,7 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+
+// Cloudinary and Multer config
+const upload = multer({ dest: 'uploads/' })
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
@@ -9,10 +13,12 @@ cloudinary.config({
     secure:true,
 });
 
+// Models
 const MangaEntry = require('./models/manga.model.js');
 
 const app = express();
-app.use(express.json())
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.put('/api/manga/:id', async (req, res) => {
     try{
@@ -80,17 +86,25 @@ app.get('/api/manga', async (req, res) => {
     }
 })
 
-app.post('/api/manga/new', async (req, res) => {
+app.post('/api/manga/new', upload.single('cover'), async (req, res) => {
     try {
+        // Add cover filename to manga entry's fields
+        req.body.coverImg = req.file.filename;
         const mangaEntry = await MangaEntry.create(req.body);
-        cloudinary.api.create_folder(`/${mangaEntry._id.toString()}`)
-        .then((result)=>{
-            if (result.success==true){
-                res.status(200).json({mangaEntry});
-            } else{
-                res.status(500).json({message:"WARNING: Cloudinary folder creation unsuccessful"});
-            }
-        })
+        
+        const folderName = `/${mangaEntry._id.toString()}`;
+        const createFolderResult = await cloudinary.api.create_folder(folderName);
+        if (createFolderResult) {
+            cloudinary.uploader.upload(req.file.path, { 
+                folder: folderName,
+                use_filename: true,
+                unique_filename: false,
+            })
+            res.status(200).json({mangaEntry});
+        } else {
+            res.status(500).json({message:"WARNING: Cloudinary folder creation unsuccessful"});
+        }
+
     } catch(error){
         res.status(500).json({message:error.message});
     }
