@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -19,6 +20,36 @@ const MangaEntry = require('./models/manga.model.js');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors({origin: 'http://localhost:5173'}));
+
+app.delete('/api/manga/:id', async (req, res) => {
+    try{
+        const { id } = req.params;
+        const manga = await MangaEntry.findByIdAndDelete(id);
+
+        if (!manga){
+            res.status(404).json({message: "Manga not found"});
+        }
+
+        let next = '';
+        public_ids = []
+        do {
+            const data = await cloudinary.api.resources({ type: 'upload', prefix: id, max_results: 10, next_cursor: next });
+            for (let i = 0; i < data.resources.length; i++) {
+                public_ids.push(data.resources[i].public_id)
+            }
+
+            next = ('next_cursor' in data) ? data.next_cursor : null;
+        } while (next != null);
+        cloudinary.api.delete_resources(public_ids);
+        cloudinary.api.delete_folder(id);
+
+        res.status(200).json({message: "Manga deleted successfully"});
+        
+    } catch(error){
+        res.status(500).json({message:error.message});
+    }
+})
 
 app.put('/api/manga/:id', async (req, res) => {
     try{
@@ -28,7 +59,7 @@ app.put('/api/manga/:id', async (req, res) => {
         var manga = await MangaEntry.findById(id);
 
         if (!manga){
-            return res.status(404).json({message: "Manga not found. Double-check the ID."});
+            return res.status(404).json({message: "Manga not found"});
         }
 
         // If a new chapter is being uploaded into the manga's chapter list
@@ -68,7 +99,7 @@ app.get('/api/manga/:id', async (req, res) => {
         const manga = await MangaEntry.findById(id);
 
         if(!manga){
-            return res.status(404).json({message: "Manga not found. Double-check the ID."});
+            return res.status(404).json({message: "Manga not found"});
         }
 
         res.status(200).json({manga});
