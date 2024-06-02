@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { ChapterSchema } = require('./chapter_model.js');
 
 const MangaSchema = mongoose.Schema(
     {
@@ -15,7 +16,7 @@ const MangaSchema = mongoose.Schema(
             required: [true, "Manga description required"],
         },
         chapters: {
-            type: [ Number ],
+            type: [ ChapterSchema ],
             required: true,
             default: [],
         },
@@ -28,10 +29,6 @@ const MangaSchema = mongoose.Schema(
             type: [ String ],
             required: true,
             default: [],
-        },
-        newChapter: {
-            type: Number,
-            required: false,
         },
         coverImg: {
             type: String

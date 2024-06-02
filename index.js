@@ -16,12 +16,14 @@ cloudinary.config({
 
 // Models
 const MangaEntry = require('./models/manga.model.js');
+const { ChapterEntry } = require('./models/chapter_model.js');
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({origin: 'http://localhost:5173'}));
 
+// Delete a manga entry entirely
 app.delete('/api/manga/:id', async (req, res) => {
     try{
         const { id } = req.params;
@@ -51,40 +53,30 @@ app.delete('/api/manga/:id', async (req, res) => {
     }
 })
 
+// Publish a new chapter to a manga entry by ID
+app.put('/api/manga/:id/new-chapter', async (req, res) => {
+    try{
+        const { id } = req.params;
+        const chapter = await ChapterEntry.create(req.body);
+        
+        await MangaEntry.findByIdAndUpdate(id, {$push: { chapters: chapter }}, { runValidators: true });
+        const updatedManga = await MangaEntry.findById(id);
+        res.status(200).json({updatedManga});
+    } catch(error){
+        res.status(500).json({message:error.message});
+    }
+})
+
+// Update manga metadata (title, author, desc, status, genres, coverImg)
 app.put('/api/manga/:id', async (req, res) => {
     try{
         const { id } = req.params;
-
-        // Find the Manga we are updating
-        var manga = await MangaEntry.findById(id);
-
+        const manga = await MangaEntry.findById(id);
         if (!manga){
-            return res.status(404).json({message: "Manga not found"});
+            res.status(404).json({message: "Manga not found"});
         }
-
-        // If a new chapter is being uploaded into the manga's chapter list
-        if (req.body.newChapter){
-            let newChapter = req.body.newChapter;
-            delete req.body.newChapter;
-
-            cloudinary.api.create_folder(`/${id}/${newChapter}`);
-            req.body.chapters = manga.chapters.concat(newChapter).sort(function(a, b){return a - b});
-
-            // Upload the newChapter images
-            for(let i = 0; i < 7; i++){
-                cloudinary.uploader.upload(`./chapter-images/${i+1}.jpg`, 
-                    { 
-                        folder: `/${id}/${newChapter}`,
-                        use_filename: true,
-                        unique_filename: false,
-                    })
-            }
-        }
-
         // Update the manga entry on the DB
-        var manga = await MangaEntry.findByIdAndUpdate(id, req.body, { runValidators: true });
-
-        // Return the updated manga entry
+        await MangaEntry.findByIdAndUpdate(id, mangaBody, { runValidators: true });
         const updatedManga = await MangaEntry.findById(id);
         res.status(200).json({updatedManga});
 
@@ -93,6 +85,7 @@ app.put('/api/manga/:id', async (req, res) => {
     }
 })
 
+// Retrieve specific manga entry by ID
 app.get('/api/manga/:id', async (req, res) => {
     try{
         const { id } = req.params;
@@ -108,6 +101,7 @@ app.get('/api/manga/:id', async (req, res) => {
     }
 })
 
+// Retrieve all manga entries
 app.get('/api/manga', async (req, res) => {
     try{
         const mangas = await MangaEntry.find({});
@@ -117,6 +111,7 @@ app.get('/api/manga', async (req, res) => {
     }
 })
 
+// Create new manga entry
 app.post('/api/manga/new', upload.single('cover'), async (req, res) => {
     try {
         // Add cover filename to manga entry's fields
