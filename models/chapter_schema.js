@@ -16,13 +16,9 @@ const ChapterSchema = mongoose.Schema(
         }
     },
     {
-        // _id: false,
+        _id : false,
         timestamps: true
     }
 );
 
-const ChapterEntry = mongoose.model("Chapter", ChapterSchema);
-module.exports = {
-    ChapterEntry,
-    ChapterSchema
-};
+module.exports = ChapterSchema;

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { ChapterSchema } = require('./chapter_model.js');
+const ChapterSchema = require('./chapter_schema.js');
 
 const MangaSchema = mongoose.Schema(
     {

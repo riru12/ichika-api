@@ -6,7 +6,16 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 
 // Cloudinary and Multer config
-const upload = multer({ dest: 'uploads/' })
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
+    }
+}); 
+const upload = multer({ storage: storage });
+
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
@@ -16,7 +25,6 @@ cloudinary.config({
 
 // Models
 const MangaEntry = require('./models/manga.model.js');
-const { ChapterEntry } = require('./models/chapter_model.js');
 
 const app = express();
 app.use(express.json());
@@ -57,9 +65,20 @@ app.delete('/api/manga/:id', async (req, res) => {
 app.put('/api/manga/:id/new-chapter', async (req, res) => {
     try{
         const { id } = req.params;
-        const chapter = await ChapterEntry.create(req.body);
+        const chapterNo = req.body.chapterNo;
+        const manga = await MangaEntry.findById(id);
+        if (!manga){
+            res.status(404).json({message: "Manga not found"});
+        }
         
-        await MangaEntry.findByIdAndUpdate(id, {$push: { chapters: chapter }}, { runValidators: true });
+        await MangaEntry.findByIdAndUpdate(id, 
+            {$push: { chapters: { 
+                    $each: [req.body], 
+                    $sort: { chapterNo: 1 } 
+                }}
+            }, { runValidators: true });
+        cloudinary.api.create_folder(`/${id}/${chapterNo}`);
+
         const updatedManga = await MangaEntry.findById(id);
         res.status(200).json({updatedManga});
     } catch(error){
