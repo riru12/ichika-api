@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const multer = require('multer');
+const methodOverride = require('method-override');
 const cloudinary = require('cloudinary').v2;
 
 // Cloudinary and Multer config
@@ -29,6 +30,7 @@ const MangaEntry = require('./models/manga.model.js');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(methodOverride('_method'));
 app.use(cors({origin: 'http://localhost:5173'}));
 
 // Delete a manga entry entirely
@@ -62,7 +64,7 @@ app.delete('/api/manga/:id', async (req, res) => {
 })
 
 // Publish a new chapter to a manga entry by ID
-app.put('/api/manga/:id/new-chapter', async (req, res) => {
+app.put('/api/manga/:id/new-chapter', upload.any('pages'), async (req, res) => {
     try{
         const { id } = req.params;
         const chapterNo = req.body.chapterNo;
@@ -78,6 +80,16 @@ app.put('/api/manga/:id/new-chapter', async (req, res) => {
                 }}
             }, { runValidators: true });
         cloudinary.api.create_folder(`/${id}/${chapterNo}`);
+        for(let i = 0; i < req.files.length; i++){
+            cloudinary.uploader.upload(req.files[i].path, 
+                { 
+                    folder: `/${id}/${chapterNo}`,
+                    use_filename: true,
+                    unique_filename: false,
+                })
+        }
+
+        console.log(req.files);
 
         const updatedManga = await MangaEntry.findById(id);
         res.status(200).json({updatedManga});
