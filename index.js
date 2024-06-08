@@ -99,15 +99,16 @@ app.put('/api/manga/:id/new-chapter', upload.any('pages'), async (req, res) => {
 })
 
 // Update manga metadata (title, author, desc, status, genres, coverImg)
-app.put('/api/manga/:id', async (req, res) => {
+app.put('/api/manga/:id/update', async (req, res) => {
     try{
         const { id } = req.params;
         const manga = await MangaEntry.findById(id);
         if (!manga){
             res.status(404).json({message: "Manga not found"});
         }
+        console.log(req.body);
         // Update the manga entry on the DB
-        await MangaEntry.findByIdAndUpdate(id, mangaBody, { runValidators: true });
+        await MangaEntry.findByIdAndUpdate(id, req.body, { runValidators: true });
         const updatedManga = await MangaEntry.findById(id);
         res.status(200).json({updatedManga});
 
